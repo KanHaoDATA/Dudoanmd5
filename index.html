@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tài Xỉu MD5 - Key Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #000;
+      font-family: 'Quicksand', sans-serif;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    .container {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90vw;
+      max-width: 420px;
+      padding: 20px;
+      background-color: #111;
+      border: 4px solid #00cc44;
+      border-radius: 20px;
+      box-shadow: 0 0 20px #00cc44, 0 0 40px #00cc44, inset 0 0 15px #00cc44;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 26px;
+      margin-bottom: 20px;
+      color: #00cc44;
+      text-shadow: 0 0 10px #00cc44;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      margin-bottom: 15px;
+      box-sizing: border-box;
+    }
+
+    input {
+      background-color: #222;
+      color: white;
+      box-shadow: 0 0 8px #00cc44;
+    }
+
+    button {
+      background-color: #00cc44;
+      color: #000;
+      cursor: pointer;
+      box-shadow: 0 0 12px #00cc44, 0 0 24px #00cc44 inset;
+    }
+
+    button:hover {
+      background-color: #009933;
+    }
+
+    .logout-btn {
+      position: absolute;
+      top: 0;
+      left: 0;
+      padding: 6px 12px;
+      font-size: 12px;
+      background-color: #00cc44;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 0 8px #00cc44;
+    }
+
+    .dice {
+      font-size: 60px;
+      margin: 10px;
+      text-shadow: 0 0 5px #fff;
+    }
+
+    .result-text {
+      font-size: 26px;
+      font-weight: bold;
+      margin-top: 10px;
+      color: #00ff88;
+      text-shadow: 0 0 8px #00ff88;
+    }
+
+    .tai, .xiu {
+      font-size: 32px;
+      font-weight: bold;
+      text-shadow: 0 0 6px currentColor;
+    }
+
+    .tai { color: #e74c3c; }
+    .xiu { color: #3498db; }
+  </style>
+</head>
+<body>
+  <div class="container" id="loginBox">
+    <h1>@KanHaoDATA</h1>
+    <input id="keyInput" placeholder="Nhập key..." />
+    <button onclick="checkKey()">Đăng nhập</button>
+    <button onclick="registerKey()">Đăng ký</button>
+  </div>
+
+  <div class="container" id="mainApp" style="display:none;">
+    <button class="logout-btn" onclick="logout()">Đăng xuất</button>
+    <h1>@KanHaoDATA</h1>
+    <div style="margin-bottom: 10px;">
+      Key: <span id="keyDisplay" style="color: #00ff88;"></span>
+    </div>
+    <input id="inputStr" placeholder="Nhập chuỗi MD5..." />
+    <button onclick="calc()">Dự Đoán</button>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    function getKeyStore() {
+      return JSON.parse(localStorage.getItem("keys") || "{}");
+    }
+
+    function saveKeyStore(store) {
+      localStorage.setItem("keys", JSON.stringify(store));
+    }
+
+    function checkKey() {
+      const key = document.getElementById("keyInput").value.trim();
+      const keyStore = getKeyStore();
+      const data = keyStore[key];
+      if (!data) return alert("Key không tồn tại!");
+      if (!data.expire) return alert("Key chưa được kích hoạt!");
+      const now = new Date().toISOString().slice(0, 10);
+      if (data.expire < now) return alert("Key đã hết hạn!");
+
+      localStorage.setItem("currentKey", key);
+      showApp();
+    }
+
+    function registerKey() {
+      const key = document.getElementById("keyInput").value.trim();
+      if (!key) return alert("Vui lòng nhập key để đăng ký!");
+      const keyStore = getKeyStore();
+      if (keyStore[key]) return alert("Key đã tồn tại!");
+      keyStore[key] = {}; // chưa có expire
+      saveKeyStore(keyStore);
+      alert("Đăng ký thành công. Chờ admin kích hoạt.");
+    }
+
+    function logout() {
+      localStorage.removeItem("currentKey");
+      location.reload();
+    }
+
+    function showApp() {
+      document.getElementById("loginBox").style.display = "none";
+      document.getElementById("mainApp").style.display = "block";
+      document.getElementById("keyDisplay").textContent = localStorage.getItem("currentKey") || "";
+    }
+
+    window.onload = () => {
+      const savedKey = localStorage.getItem("currentKey");
+      const keyStore = getKeyStore();
+      if (savedKey && keyStore[savedKey] && keyStore[savedKey].expire >= new Date().toISOString().slice(0, 10)) {
+        showApp();
+      }
+    };
+
+    function calc() {
+      const input = document.getElementById("inputStr").value.trim();
+      if (!input) return alert("Vui lòng nhập chuỗi!");
+      if (!/^[a-f0-9]{32}$/i.test(input)) return alert("Chuỗi không đúng định dạng MD5!");
+
+      const last6 = input.slice(-6);
+      const decimal = parseInt(last6, 16);
+      const d1 = (decimal % 6) + 1;
+      const d2 = (Math.floor(decimal / 6) % 6) + 1;
+      const d3 = (Math.floor(decimal / 36) % 6) + 1;
+      const total = d1 + d2 + d3;
+      const icons = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+      const result = `
+        <div><span class="dice">${icons[d1 - 1]}</span><span class="dice">${icons[d2 - 1]}</span><span class="dice">${icons[d3 - 1]}</span></div>
+        <div class="result-text"> </div>
+        <div class="${total > 10 ? 'tai' : 'xiu'}">${total > 10 ? '𝐓' : '𝐗'}</div>
+      `;
+      document.getElementById("result").innerHTML = result;
+    }
+  </script>
+</body>
+</html>
